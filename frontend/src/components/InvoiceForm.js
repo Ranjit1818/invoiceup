@@ -48,7 +48,7 @@ const InvoiceForm = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/generate-invoice",
+        "http://invoiceupdate.vercel.app/api/generate-invoice",
         formData,
         {
           responseType: "blob", // Important for handling binary data
