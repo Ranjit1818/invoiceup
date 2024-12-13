@@ -47,7 +47,7 @@ const InvoiceForm = () => {
 
     try {
       const response = await axios.post(
-        "http://invoiceupdate.vercel.app/api/generate-invoice",
+        "https://invoiceupdate.vercel.app/api/generate-invoice",
         formData
       );
       console.log("Invoice Generated: ", response.data);
