@@ -219,12 +219,19 @@ doc.font("Helvetica-Bold").text(amountInWords, margin + thirdTableColWidths[0] +
     .text("1.All payments should be made electronically in the name of Vidwat Associates", pageWidth - 530, footerY + 112, { align: "left" })
     .text("2.All disputes shall be subjected to jurisdiction of Vijayapur", pageWidth  - 530, footerY + 127, { align: "left" })
     .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order", pageWidth  - 530, footerY + 142, { align: "left" });
-   const signImageUrl = "https://your-static-host.com/vidwat_sign.png";
+const path = require("path");
+const signImagePath = path.join(__dirname, "assets", "vidwat_sign.png");
 
-doc.image(signImageUrl, pageWidth - margin - 150, footerY + 200, {
-  width: imageWidth,
-  height: imageHeight,
+// Check if the file exists (for debugging)
+if (!fs.existsSync(signImagePath)) {
+  console.error("Signature image file not found at:", signImagePath);
+}
+doc.image(signImagePath, pageWidth - margin - 150, footerY + 200, {
+  width: 100, // Adjust width
+  height: 50, // Adjust height
 });
+
+
 
   // Finalize the PDF
   doc.end();
