@@ -1,6 +1,6 @@
 const handleGenerateInvoice = async () => {
   try {
-      const response = await axios.post("https://invoiceupdate.vercel.app/api/generate-invoice", invoiceData, {
+      const response = await axios.post("http://invoiceupdate.vercel.app/api/generate-invoice", invoiceData, {
           responseType: "blob" // Ensures the response is handled as binary data
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
