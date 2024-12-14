@@ -78,7 +78,7 @@ app.post("/api/generate-invoice", (req, res) => {
   doc.fontSize(10)
     .font("Helvetica-Bold")
     .text(`Invoice No: ${invoice_num}`, pageWidth - margin - 100, 80, { align: "center" })
-    .text(`Invoice Date: ${new Date().toLocaleDateString()}`, pageWidth - margin - 135, 95, { align: "center" });
+.text(`Invoice Date: ${new Date().toLocaleDateString("en-GB")}`, pageWidth - margin - 143, 95, { align: "center" });
     doc.moveTo(margin, 160).lineTo(pageWidth - margin, 160).stroke();
 
     // Draw border for "Bill To" and "Ship To" sections
