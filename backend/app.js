@@ -219,15 +219,17 @@ doc.font("Helvetica-Bold").text(amountInWords, margin + thirdTableColWidths[0] +
     .text("1.All payments should be made electronically in the name of Vidwat Associates", pageWidth - 530, footerY + 112, { align: "left" })
     .text("2.All disputes shall be subjected to jurisdiction of Vijayapur", pageWidth  - 530, footerY + 127, { align: "left" })
     .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order", pageWidth  - 530, footerY + 142, { align: "left" });
-    const signImagePath = "./vidwat_sign.png"; // Path to your image file
-    const imageWidth = 120; // Set the desired image width
-    const imageHeight = 60; // Set the desired image height
-    
-    doc.image(signImagePath, pageWidth - margin - 150, footerY + 200, {
-      width: imageWidth,
-      height: imageHeight,
-    });
-    
+   const path = require("path");
+
+// Construct the absolute path to the image
+const signImagePath = path.join(__dirname, "assets", "vidwat_sign.png");
+
+// Use the file in your PDF generation
+doc.image(signImagePath, pageWidth - margin - 150, footerY + 200, {
+  width: imageWidth,
+  height: imageHeight,
+});
+
   // Finalize the PDF
   doc.end();
 });
