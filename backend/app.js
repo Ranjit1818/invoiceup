@@ -19,6 +19,89 @@ app.post("/api/generate-invoice", (req, res) => {
     return res.status(400).json({ error: "Missing or invalid required fields" });
   }
 
+  //Adding numbers to words conversion in Indian rupee
+function numberToWordsIndian(num) {
+  const units = [
+    "",
+    "Thousand",
+    "Lakh",
+    "Crore",
+  ];
+
+  const belowTwenty = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
+
+  const tens = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
+
+  const convertChunk = (n) => {
+    if (n < 20) return belowTwenty[n];
+    if (n < 100)
+      return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + belowTwenty[n % 10] : "");
+    if (n < 1000)
+      return (
+        belowTwenty[Math.floor(n / 100)] +
+        " Hundred" +
+        (n % 100 !== 0 ? " " + convertChunk(n % 100) : "")
+      );
+    return "";
+  };
+
+  if (num === 0) return "Zero";
+
+  let words = "";
+  const chunkedNumbers = [];
+  let divisor = 1000;
+
+  while (num > 0) {
+    chunkedNumbers.unshift(num % divisor);
+    num = Math.floor(num / divisor);
+    divisor = divisor === 1000 ? 100 : 100;
+  }
+
+  const len = chunkedNumbers.length;
+  chunkedNumbers.forEach((chunk, index) => {
+    if (chunk > 0) {
+      words +=
+        convertChunk(chunk) +
+        (index < len - 1 ? " " + units[len - 1 - index] + " " : "");
+    }
+  });
+
+  return words.trim();
+}
+
+
   // Validate items
   for (const item of items) {
     if (
@@ -161,7 +244,7 @@ tableStartY += rowHeight; // Add vertical gap between tables
 
 // Second Table: Tax Summary
 
-drawBoldRow(["SL", "HSN/SAC", "TAX%", "AMOUNT"], tableStartY);
+drawBoldRow(["SL", "HSN/SAC", "AMOUNT"], tableStartY);
 tableStartY += rowHeight;
 
 items.forEach((item, index) => {
@@ -171,7 +254,6 @@ items.forEach((item, index) => {
   drawRow([
     `${index + 1}`,
     `${item.hsn_sac || "-"}`,
-    `${tax}%`,
     `${taxAmount}`
   ], tableStartY);
 
@@ -204,7 +286,7 @@ const capitalizeSentences = (text) => {
 };
 
 const amountInWords = capitalizeSentences(
-  toWords(totalAmount).replace(/,/g, "") + " Rupees Only"
+  numberToWordsIndian(totalAmount) + " Rupees Only"
 );
 
 doc.rect(margin + thirdTableColWidths[0], tableStartY, thirdTableColWidths[1], rowHeight).stroke();
