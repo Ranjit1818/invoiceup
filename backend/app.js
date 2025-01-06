@@ -299,9 +299,9 @@ doc.font("Helvetica-Bold").text(amountInWords, margin + thirdTableColWidths[0] +
     .font("Helvetica")
     .font("Helvetica-Bold")
     .text("Terms and Conditions:", pageWidth - 550, footerY +96, { align: "left" })
-    .text("1.All payments should be made electronically in the name of Vidwat Associates", pageWidth - 530, footerY + 112, { align: "left" })
-    .text("2.All disputes shall be subjected to jurisdiction of Vijayapur", pageWidth  - 530, footerY + 127, { align: "left" })
-    .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order", pageWidth  - 530, footerY + 142, { align: "left" });
+    .text("1.All payments should be made electronically in the name of Vidwat Associates.", pageWidth - 530, footerY + 112, { align: "left" })
+    .text("2.All disputes shall be subjected to jurisdiction of Vijayapur.", pageWidth  - 530, footerY + 127, { align: "left" })
+    .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order.", pageWidth  - 530, footerY + 142, { align: "left" });
 const path = require("path");
 const signImagePath = path.join(__dirname, "assets", "vidwat_sign.png");
 
