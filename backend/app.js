@@ -243,7 +243,7 @@ items.forEach((item, index) => {
 tableStartY += rowHeight; // Add vertical gap between tables
 
 // Second Table: Tax Summary
-
+/*
 drawBoldRow(["SL", "HSN/SAC", "AMOUNT"], tableStartY);
 tableStartY += rowHeight;
 
@@ -259,6 +259,7 @@ items.forEach((item, index) => {
 
   tableStartY += rowHeight;
 });
+*/
 // Third Table: Amount Payable and In Words
 tableStartY += rowHeight; // Add vertical gap
 const thirdTableColWidths = [200, pageWidth - margin * 2 - 200];
