@@ -197,50 +197,66 @@ function numberToWordsIndian(num) {
 
 
   // Table positions
-  let tableStartY = billShipY + 120; // Adjusted to add more space below "Bill To" and "Ship To"
-  const rowHeight = 20;
-  const colWidths = [40, 160, 100, 100, 100];
+  let tableStartY = billShipY + 120; // Space below "Bill To" and "Ship To"
+const colWidths = [40, 160, 100, 100, 100];
 
-  // Helper function for drawing rows
-  const drawRow = (columns, y) => {
-    let x = margin;
-    columns.forEach((col, i) => {
-      doc.rect(x, y, colWidths[i], rowHeight).stroke();
-      doc.text(col, x + 5, y + 5, { width: colWidths[i] - 10, align: "left" });
-      x += colWidths[i];
-    });
-  };
-// First Table: Item Details
-function drawBoldRow(columns, y) {
+// Dynamic row drawing
+const drawRow = (columns, y) => {
   let x = margin;
-    columns.forEach((col, i) => {
-      doc.rect(x, y, colWidths[i], rowHeight).stroke();
-      doc.text(col, x + 5, y + 5, { width: colWidths[i] - 10, align: "left" });
-      x += colWidths[i];
-    });
-}
 
+  // Measure height for each column's text
+  const colHeights = columns.map((col, i) =>
+    doc.heightOfString(col, { width: colWidths[i] - 10 })
+  );
 
-drawBoldRow(["SL", "ITEM DESCRIPTION", "RATE/ITEM", "QUANTITY", "AMOUNT"], tableStartY);
-tableStartY += rowHeight;
+  // Max height in the row + padding
+  const rowHeightDynamic = Math.max(...colHeights) + 10;
 
+  // Draw each cell
+  columns.forEach((col, i) => {
+    doc.rect(x, y, colWidths[i], rowHeightDynamic).stroke();
+    doc.text(col, x + 5, y + 5, { width: colWidths[i] - 10, align: "left" });
+    x += colWidths[i];
+  });
+
+  return y + rowHeightDynamic; // Return new y position
+};
+
+// Bold header row
+const drawBoldRow = (columns, y) => {
+  doc.font("Helvetica-Bold");
+  const newY = drawRow(columns, y);
+  doc.font("Helvetica"); // Reset font
+  return newY;
+};
+
+// Draw table header
+tableStartY = drawBoldRow(
+  ["SL", "ITEM DESCRIPTION", "RATE/ITEM", "QUANTITY", "AMOUNT"],
+  tableStartY
+);
+
+// Draw table rows
 items.forEach((item, index) => {
   const qty = Number(item.qty);
   const rate = Number(item.rate_item);
   const amount = (qty * rate).toFixed(2);
 
-  drawRow([
-    `${index + 1}`,
-    `${item.item_desc}`,
-    `${rate.toFixed(2)}`,
-    `${qty}`,
-    ` ${amount}`
-  ], tableStartY);
-
-  tableStartY += rowHeight;
+  tableStartY = drawRow(
+    [
+      `${index + 1}`,
+      `${item.item_desc}`,
+      `${rate.toFixed(2)}`,
+      `${qty}`,
+      `${amount}`
+    ],
+    tableStartY
+  );
 });
 
-tableStartY += rowHeight; // Add vertical gap between tables
+// Optional: Add space after table
+tableStartY += 20;
+
 
 // Second Table: Tax Summary
 /*
