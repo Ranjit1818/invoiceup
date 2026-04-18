@@ -1,9 +1,16 @@
 // Import necessary modules
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
 const PDFDocument = require("pdfkit");
+<<<<<<< HEAD
 const fs = require("fs");
 const path = require("path");
+=======
+const { toWords } = require("number-to-words");
+const Invoice = require("./models/Invoice");
+>>>>>>> 115b54a (database added)
 
 const app = express();
 
@@ -11,7 +18,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+<<<<<<< HEAD
 // Helper: Convert number to Indian currency words
+=======
+// MongoDB Connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("Could not connect to MongoDB:", err));
+
+// Endpoint to generate invoice
+app.post("/api/generate-invoice", async (req, res) => {
+  const { invoice_num, bill_to, ship_to, gst_num, items } = req.body;
+
+  // Validate request body
+  if (!invoice_num || !bill_to || !ship_to || !gst_num|| !Array.isArray(items)) {
+    return res.status(400).json({ error: "Missing or invalid required fields" });
+  }
+
+  //Adding numbers to words conversion in Indian rupee
+>>>>>>> 115b54a (database added)
 function numberToWordsIndian(num) {
   const belowTwenty = [
     "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
@@ -82,6 +108,23 @@ app.post("/api/generate-invoice", (req, res) => {
     return sum + qty * rate;
   }, 0);
 
+  // Save to MongoDB
+  try {
+    const newInvoice = new Invoice({
+      invoice_num,
+      bill_to,
+      ship_to,
+      gst_num,
+      items,
+      totalAmount,
+    });
+    await newInvoice.save();
+  } catch (error) {
+    console.error("Error saving invoice to DB:", error);
+    // Continue even if DB save fails, or handle as error?
+    // For now, let's just log it.
+  }
+
   // Create a new PDF document
   const doc = new PDFDocument({ margin: 50 });
 
@@ -116,11 +159,44 @@ app.post("/api/generate-invoice", (req, res) => {
     .text(`Invoice No: ${invoice_num}`, pageWidth - margin - 143, 80, { align: "center" })
     .text(`Invoice Date: ${new Date().toLocaleDateString("en-GB")}`, pageWidth - margin - 143, 95, { align: "center" });
 
+<<<<<<< HEAD
   // Bill To / Ship To box
   const billShipY = 180;
   const boxWidth = pageWidth - 2 * margin;
   const boxHeight = 90;
   const columnWidth = boxWidth / 2;
+=======
+    // Draw border for "Bill To" and "Ship To" sections
+    const billShipY = 180;
+    const boxWidth = pageWidth - 2 * margin;
+    const boxHeight = 90;
+  
+    doc.rect(margin, billShipY - 10, boxWidth, boxHeight).stroke("black");
+  
+    // Billing and Shipping Details
+    const columnWidth = boxWidth / 2;
+    doc.moveTo(margin + columnWidth, billShipY - 10)
+    .lineTo(margin + columnWidth, billShipY - 10 + boxHeight)
+    .stroke("black");
+  
+    // "Bill To" section
+    doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", margin + 10, billShipY);
+    doc.fontSize(10)
+      .font("Helvetica")
+      .text(bill_to || "N/A", margin + 20, billShipY + 15)
+      .text("Karnataka,", margin +20, billShipY + 30)
+      .text("India", margin + 20, billShipY + 45)
+      .text(`${gst_num || "India"}`, margin + 20, billShipY + 60);
+  
+    // "Ship To" section
+    doc.fontSize(12).font("Helvetica-Bold").text("Ship To:", margin + columnWidth + 10, billShipY);
+    doc.fontSize(10)
+      .font("Helvetica")
+      .text(ship_to || "N/A", margin + columnWidth + 20, billShipY + 15)
+      .text("Karnataka,", margin + columnWidth + 20, billShipY + 30)
+      .text("India", margin + columnWidth + 20, billShipY + 45)
+      .text(`${gst_num || "India"}`, margin + columnWidth + 20, billShipY + 60);
+>>>>>>> 115b54a (database added)
 
   doc.rect(margin, billShipY - 10, boxWidth, boxHeight).stroke();
   doc.moveTo(margin + columnWidth, billShipY - 10).lineTo(margin + columnWidth, billShipY - 10 + boxHeight).stroke();
@@ -216,8 +292,23 @@ app.post("/api/generate-invoice", (req, res) => {
   doc.end();
 });
 
+<<<<<<< HEAD
 // Start server
 const PORT = 5000;
+=======
+// Endpoint to get all invoices
+app.get("/api/invoices", async (req, res) => {
+  try {
+    const invoices = await Invoice.find().sort({ createdAt: -1 });
+    res.json(invoices);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch invoices" });
+  }
+});
+
+// Start the server
+const PORT = process.env.PORT || 5000;
+>>>>>>> 115b54a (database added)
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

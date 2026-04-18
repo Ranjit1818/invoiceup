@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const InvoiceForm = () => {
+  const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
   const [formData, setFormData] = useState({
     invoice_num: "",
     bill_to: "",
@@ -48,7 +51,7 @@ const InvoiceForm = () => {
 
     try {
       const response = await axios.post(
-        "https://invoiceupdate.vercel.app/api/generate-invoice",
+        `${API_URL}/api/generate-invoice`,
         formData,
         {
           responseType: "blob", // Important for handling binary data
@@ -76,15 +79,17 @@ const InvoiceForm = () => {
   return (
     <div className="min-h-screen bg-blue-500 flex items-center justify-center p-6">
       {/* Container */}
-      <div className="bg-white shadow-lg rounded-xl w-full max-w-3xl p-8 space-y-6">
+      <div className="bg-white shadow-lg rounded-xl w-full max-w-4xl p-4 sm:p-8 space-y-6">
         {/* Header with Logo */}
-        <div className="flex items-center mb-6">
-          <img
-            src="vidwat_logo.png"
-            alt="VIDWAT Logo"
-            className="w-12 h-12 mr-3"
-          />
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-700">Invoice Generator</h1>
+          <button
+            type="button"
+            onClick={() => navigate("/history")}
+            className="py-2 px-4 bg-gray-600 text-white rounded-md shadow-md hover:bg-gray-700 focus:ring focus:ring-gray-300 transition"
+          >
+            View History
+          </button>
         </div>
 
         {/* Form */}
@@ -140,13 +145,13 @@ const InvoiceForm = () => {
             </div>
           </div>
 
-          <h3 className="text-lg font-semibold text-gray-700">Items:</h3>
+          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Items:</h3>
           {formData.items.map((item, index) => (
             <div
               key={index}
-              className="bg-gray-50 p-4 rounded-lg shadow-inner space-y-3 relative"
+              className="bg-violet-50 p-4 rounded-lg shadow-sm border border-violet-200 space-y-4 relative transition hover:shadow-md"
             >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:grid-cols-5">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-600">
                     Item Description:
@@ -203,13 +208,18 @@ const InvoiceForm = () => {
                   />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleRemoveItem(index)}
-                className="absolute top-8 right-1 text-red-500 hover:text-red-700"
-              >
-                X
-              </button>
+              <div className="flex justify-end border-t pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleRemoveItem(index)}
+                  className="py-1.5 px-4 bg-red-100 text-red-600 rounded-md text-sm font-semibold hover:bg-red-600 hover:text-white transition-colors duration-200 flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Remove Item
+                </button>
+              </div>
             </div>
           ))}
 
