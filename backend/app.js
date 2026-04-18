@@ -12,7 +12,29 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+// CORS — allow localhost dev + both Vercel deployments
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://invoiceup.vercel.app",
+  "https://invoiceupdate.vercel.app",
+];
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (curl, mobile apps, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+app.options("*", cors()); // handle preflight for all routes
 
 // MongoDB Connection
 if (process.env.MONGODB_URI) {
