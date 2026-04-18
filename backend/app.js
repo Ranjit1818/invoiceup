@@ -12,20 +12,7 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Health Check Endpoint
-app.get("/", (req, res) => {
-  res.json({ status: "alive", message: "Vidwat Invoice Backend is running!" });
-});
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", database: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
-});
+app.use(cors());
 
 // MongoDB Connection
 if (process.env.MONGODB_URI) {
@@ -119,7 +106,7 @@ app.post("/api/generate-invoice", async (req, res) => {
     }
 
     // Create a new PDF document
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     // Set headers
     res.setHeader("Content-Type", "application/pdf");
@@ -128,98 +115,136 @@ app.post("/api/generate-invoice", async (req, res) => {
     // Stream the PDF directly to the client
     doc.pipe(res);
 
-    const pageWidth = 595;
+    const pageWidth = 595.28;
     const margin = 50;
-
-    // Header
-    doc.fontSize(16).font("Helvetica-Bold").text("INVOICE", { align: "center" });
-    doc.fontSize(18).font("Helvetica-Bold").text("VIDWAT ASSOCIATES", margin, 45);
+    
+    // INVOICE Title
+    doc.fontSize(18).font("Helvetica-Bold").text("INVOICE", { align: "center" });
+    
+    const startY = 80;
+    
+    // Left Header (Company Info)
+    doc.fontSize(17).text("VIDWAT ASSOCIATES", margin, startY);
+    
     doc.fontSize(10).font("Helvetica")
-      .text("#33, Arvind Nagar", margin, 62)
-      .text("Near Veer Savarkar Circle", margin, 75)
-      .text("Vijayapur 586101, Karnataka, India", margin, 90)
-      .text("PAN: AAZFV2824J", margin, 105)
-      .text("GST: 29AAZFV2824J1ZB", margin, 120)
-      .text("Email: vidwatassociates@gmail.com", margin, 135)
-      .text("Phone: 7892787054", margin, 150);
-
-    doc.moveTo(margin, 160).lineTo(pageWidth - margin, 160).stroke();
-
-    // Invoice Details
+      .text("#33, Arvind Nagar", margin, startY + 20)
+      .text("Near Veer Savarkar Circle", margin, startY + 32);
+      
+    // Right Header (Invoice Info)
     doc.fontSize(10).font("Helvetica-Bold")
-      .text(`Invoice No: ${invoice_num}`, pageWidth - margin - 150, 80, { align: "right" })
-      .text(`Invoice Date: ${new Date().toLocaleDateString("en-GB")}`, pageWidth - margin - 150, 95, { align: "right" });
+      .text(`Invoice No: ${invoice_num}`, pageWidth - margin - 200, startY + 32, { align: "right", width: 200 })
+      .text(`Invoice Date: ${new Date().toLocaleDateString("en-GB")}`, pageWidth - margin - 200, startY + 44, { align: "right", width: 200 });
+
+    doc.font("Helvetica")
+      .text("Vijayapur 586101, Karnataka, India", margin, startY + 44)
+      .text("PAN: AAZFV2824J", margin, startY + 56)
+      .text("GST: 29AAZFV2824J1ZB", margin, startY + 68)
+      .text("Email: vidwatassociates@gmail.com", margin, startY + 80)
+      .text("Phone: 7892787054", margin, startY + 92);
+
+    // Horizontal Line above Bill To
+    doc.moveTo(margin, startY + 110).lineTo(pageWidth - margin, startY + 110).lineWidth(1).stroke();
 
     // Bill To / Ship To
-    const billShipY = 180;
+    const billShipY = startY + 125;
     const boxWidth = pageWidth - 2 * margin;
-    const boxHeight = 90;
+    const boxHeight = 85;
     const columnWidth = boxWidth / 2;
 
-    doc.rect(margin, billShipY - 10, boxWidth, boxHeight).stroke();
-    doc.moveTo(margin + columnWidth, billShipY - 10).lineTo(margin + columnWidth, billShipY - 10 + boxHeight).stroke();
+    doc.rect(margin, billShipY, boxWidth, boxHeight).stroke();
+    doc.moveTo(margin + columnWidth, billShipY).lineTo(margin + columnWidth, billShipY + boxHeight).stroke();
 
-    doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", margin + 10, billShipY);
+    doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", margin + 10, billShipY + 10);
     doc.fontSize(10).font("Helvetica")
-      .text(bill_to || "N/A", margin + 20, billShipY + 15)
-      .text("Karnataka, India", margin + 20, billShipY + 30)
-      .text(`GST: ${gst_num || ""}`, margin + 20, billShipY + 45);
+      .text(bill_to || "", margin + 20, billShipY + 28)
+      .text("Karnataka,", margin + 20, billShipY + 40)
+      .text("India", margin + 20, billShipY + 52)
+      .text(gst_num ? `${gst_num}` : "-", margin + 20, billShipY + 64);
 
-    doc.fontSize(12).font("Helvetica-Bold").text("Ship To:", margin + columnWidth + 10, billShipY);
+    doc.fontSize(12).font("Helvetica-Bold").text("Ship To:", margin + columnWidth + 10, billShipY + 10);
     doc.fontSize(10).font("Helvetica")
-      .text(ship_to || "N/A", margin + columnWidth + 20, billShipY + 15)
-      .text("Karnataka, India", margin + columnWidth + 20, billShipY + 30)
-      .text(`GST: ${gst_num || ""}`, margin + columnWidth + 20, billShipY + 45);
+      .text(ship_to || "", margin + columnWidth + 20, billShipY + 28)
+      .text("Karnataka,", margin + columnWidth + 20, billShipY + 40)
+      .text("India", margin + columnWidth + 20, billShipY + 52)
+      .text(gst_num ? ` ${gst_num}` : "-", margin + columnWidth + 20, billShipY + 64);
 
     // Items Table
-    let tableStartY = billShipY + 100;
-    const colWidths = [40, 160, 100, 100, 100];
-    const rowHeight = 25;
+    let tableStartY = billShipY + boxHeight + 40;
+    const colWidths = [40, 200, 90, 75, 90]; // Sum = 495
+    const rowHeight = 22;
 
     const drawRow = (cols, y, isBold = false) => {
       let x = margin;
+      doc.fontSize(10);
       if (isBold) doc.font("Helvetica-Bold"); else doc.font("Helvetica");
+      
+      // Calculate the maximum height needed for this row
+      let heights = cols.map((col, i) => doc.heightOfString(String(col), { width: colWidths[i] - 10 }));
+      let maxHeight = Math.max(rowHeight, ...heights) + 10;
+
       cols.forEach((col, i) => {
-        doc.rect(x, y, colWidths[i], rowHeight).stroke();
-        doc.text(col, x + 5, y + 7, { width: colWidths[i] - 10 });
+        const textHeight = heights[i];
+        const verticalPadding = (maxHeight - textHeight) / 2;
+        
+        doc.rect(x, y, colWidths[i], maxHeight).stroke();
+        doc.text(String(col), x + 5, y + verticalPadding, { 
+          width: colWidths[i] - 10,
+          align: "left"
+        });
         x += colWidths[i];
       });
-      return y + rowHeight;
+      return y + maxHeight;
     };
 
     tableStartY = drawRow(["SL", "ITEM DESCRIPTION", "RATE/ITEM", "QUANTITY", "AMOUNT"], tableStartY, true);
     items.forEach((item, index) => {
+      const rate = Number(item.rate_item).toFixed(2);
       const amount = (item.qty * item.rate_item).toFixed(2);
-      tableStartY = drawRow([`${index + 1}`, item.item_desc, item.rate_item.toString(), item.qty.toString(), amount], tableStartY);
+      tableStartY = drawRow([`${index + 1}`, item.item_desc, rate, item.qty.toString(), amount], tableStartY);
     });
 
-    tableStartY += 20;
+    // Totals Table
+    tableStartY += 10;
+    const contentWidth_final = pageWidth - 2 * margin;
+    
+    // Calculate required widths with more padding to prevent overlap
+    const labelPadding = 20; 
+    const labelWidth = Math.max(doc.widthOfString("Amount Payable"), doc.widthOfString("In Words")) + labelPadding;
+    const valueWidth = contentWidth_final - labelWidth;
 
-    // Totals
-    const totalTableWidth = pageWidth - 2 * margin;
-    doc.rect(margin, tableStartY, 200, rowHeight).stroke();
-    doc.font("Helvetica-Bold").text("Total Amount", margin + 5, tableStartY + 7);
-    doc.rect(margin + 200, tableStartY, totalTableWidth - 200, rowHeight).stroke();
-    doc.text(`Rs. ${totalAmount.toFixed(2)}`, margin + 205, tableStartY + 7);
+    // Amount Payable Row (Content starts immediately after line)
+    doc.rect(margin, tableStartY, labelWidth, rowHeight).stroke();
+    doc.font("Helvetica-Bold").text("Amount Payable", margin + 5, tableStartY + 7, { width: labelWidth - 10 });
+    doc.rect(margin + labelWidth, tableStartY, valueWidth, rowHeight).stroke();
+    doc.text(totalAmount.toFixed(2), margin + labelWidth + 5, tableStartY + 7, { width: valueWidth - 10, align: "left" });
 
     tableStartY += rowHeight;
-    doc.rect(margin, tableStartY, 200, rowHeight).stroke();
-    doc.text("In Words", margin + 5, tableStartY + 7);
-    doc.rect(margin + 200, tableStartY, totalTableWidth - 200, rowHeight).stroke();
-    doc.text(`${numberToWordsIndian(totalAmount)} Rupees Only`, margin + 205, tableStartY + 7, { width: totalTableWidth - 210 });
+    
+    // In Words Row (Dynamic Height)
+    const inWordsText = `${numberToWordsIndian(totalAmount)} Rupees Only`;
+    const inWordsHeight = Math.max(rowHeight, doc.heightOfString(inWordsText, { width: valueWidth - 15 }) + 10);
+    
+    doc.rect(margin, tableStartY, labelWidth, inWordsHeight).stroke();
+    doc.text("In Words", margin + 5, tableStartY + (inWordsHeight / 2 - 5), { width: labelWidth - 10 });
+    doc.rect(margin + labelWidth, tableStartY, valueWidth, inWordsHeight).stroke();
+    doc.text(inWordsText, margin + labelWidth + 5, tableStartY + (inWordsHeight / 2 - 5), { width: valueWidth - 10, align: "left" });
 
-    // Footer & Signature
-    const footerY = 600;
-    doc.fontSize(10).font("Helvetica-Bold").text("Terms and Conditions:", margin, footerY);
-    doc.font("Helvetica").fontSize(8)
-      .text("1. All payments should be made electronically in the name of Vidwat Associates.", margin, footerY + 15)
-      .text("2. All disputes shall be subjected to jurisdiction of Vijayapur.", margin, footerY + 25)
-      .text("3. This invoice is subjected to terms mentioned in the agreement.", margin, footerY + 35);
+    // Terms and Conditions (Now dynamic - moves based on table end)
+    const termsY = tableStartY + 100; 
+    doc.fontSize(11).font("Helvetica-Bold").text("Terms and Conditions:", margin, termsY);
+    doc.font("Helvetica-Bold").fontSize(10)
+      .text("1.All payments should be made electronically in the name of Vidwat Associates.", margin + 10, termsY + 15)
+      .text("2.All disputes shall be subjected to jurisdiction of Vijayapur.", margin + 10, termsY + 27)
+      .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order.", margin + 10, termsY + 39);
 
+    // Signature Block (Follows Terms dynamically)
+    const signY = termsY + 250;
     const signPath = path.join(__dirname, "assets", "vidwat_sign.png");
+    const signBoxWidth = 150;
+    const signX = pageWidth - margin - signBoxWidth;
+    
     if (fs.existsSync(signPath)) {
-      doc.image(signPath, pageWidth - margin - 120, footerY, { width: 100 });
-      doc.fontSize(10).font("Helvetica-Bold").text("Authorized Signatory", pageWidth - margin - 120, footerY + 60);
+      doc.image(signPath, signX + (signBoxWidth - 100) / 2, signY - 2, { width: 100 });
     }
 
     doc.end();
@@ -238,6 +263,17 @@ app.get("/api/invoices", async (req, res) => {
     res.json(invoices);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch invoices" });
+  }
+});
+
+// Endpoint to delete an invoice by ID
+app.delete("/api/invoices/:id", async (req, res) => {
+  try {
+    const deleted = await Invoice.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Invoice not found" });
+    res.json({ message: "Invoice deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete invoice" });
   }
 });
 

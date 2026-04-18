@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import InvoiceForm from "./components/InvoiceForm";
 import InvoiceHistory from "./components/InvoiceHistory";
 import Layout from "./components/Layout";
-import "./styles/App.css";
+import "./index.css";
 
 function App() {
   return (
