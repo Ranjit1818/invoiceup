@@ -12,7 +12,20 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Health Check Endpoint
+app.get("/", (req, res) => {
+  res.json({ status: "alive", message: "Vidwat Invoice Backend is running!" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", database: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
+});
 
 // MongoDB Connection
 if (process.env.MONGODB_URI) {
