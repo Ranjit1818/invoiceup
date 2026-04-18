@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { Download, Calendar, User, FileText, Search, Inbox } from "lucide-react";
 
 const InvoiceHistory = () => {

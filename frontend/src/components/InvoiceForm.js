@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Download, FileText, User, MapPin, Hash } from "lucide-react";
 
 const InvoiceForm = () => {
