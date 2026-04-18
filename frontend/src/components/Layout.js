@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutGrid, History, FilePlus, Settings } from "lucide-react";
+import { History, FilePlus } from "lucide-react";
 
 const Layout = ({ children }) => {
   const location = useLocation();

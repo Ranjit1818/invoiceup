@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Download, Calendar, User, FileText, ChevronRight, Search, Inbox } from "lucide-react";
+import { Download, Calendar, User, FileText, Search, Inbox } from "lucide-react";
 
 const InvoiceHistory = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
 
   const API_URL = process.env.REACT_APP_API_URL || "https://invoiceupdate.vercel.app";
 

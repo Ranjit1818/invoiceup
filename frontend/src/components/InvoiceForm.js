@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Send, Download, FileText, User, MapPin, Hash } from "lucide-react";
+import { Plus, Trash2, Download, FileText, User, MapPin, Hash } from "lucide-react";
 
 const InvoiceForm = () => {
-  const navigate = useNavigate();
   const API_URL = process.env.REACT_APP_API_URL || "https://invoiceupdate.vercel.app";
   
   const [formData, setFormData] = useState({
