@@ -1,25 +1,23 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Plus, Trash2, Send, Download, FileText, User, MapPin, Hash } from "lucide-react";
 
 const InvoiceForm = () => {
   const navigate = useNavigate();
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  const API_URL = process.env.REACT_APP_API_URL || "https://invoiceupdate.vercel.app";
+  
   const [formData, setFormData] = useState({
     invoice_num: "",
     bill_to: "",
     ship_to: "",
-    gst_num: "", // Added gst_num
+    gst_num: "",
     items: [
-      {
-        item_desc: "",
-        hsn_sac: "",
-        tax: "",
-        qty: "",
-        rate_item: "",
-      },
+      { item_desc: "", hsn_sac: "", tax: "", qty: "", rate_item: "" },
     ],
   });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e, index = null, field = null) => {
     if (index !== null && field !== null) {
@@ -48,198 +46,203 @@ const InvoiceForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const response = await axios.post(
         `${API_URL}/api/generate-invoice`,
         formData,
-        {
-          responseType: "blob", // Important for handling binary data
-        }
+        { responseType: "blob" }
       );
 
-      // Create a Blob from the PDF
       const blob = new Blob([response.data], { type: "application/pdf" });
-
-      // Create a link element for downloading
       const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
       link.download = `invoice_${formData.invoice_num}.pdf`;
-
-      // Programmatically click the link to trigger download
       link.click();
 
-      alert("Invoice generated and downloaded successfully!");
+      alert("Invoice generated successfully!");
     } catch (error) {
       console.error("Error generating invoice: ", error);
       alert("Error generating invoice.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-blue-500 flex items-center justify-center p-6">
-      {/* Container */}
-      <div className="bg-white shadow-lg rounded-xl w-full max-w-4xl p-4 sm:p-8 space-y-6">
-        {/* Header with Logo */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-700">Invoice Generator</h1>
-          <button
-            type="button"
-            onClick={() => navigate("/history")}
-            className="py-2 px-4 bg-gray-600 text-white rounded-md shadow-md hover:bg-gray-700 focus:ring focus:ring-gray-300 transition"
-          >
-            View History
-          </button>
-        </div>
+    <div className="space-y-8 pb-12">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold text-slate-900">Generate New Invoice</h1>
+        <p className="text-slate-500 text-lg">Create and download professional invoices in seconds.</p>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Invoice Number:
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Basic Info Section */}
+        <section className="glass-card p-8 rounded-2xl shadow-sm space-y-6">
+          <div className="flex items-center space-x-2 border-b border-slate-100 pb-4">
+            <FileText className="text-indigo-600" size={24} />
+            <h2 className="text-xl font-semibold text-slate-800">Invoice Details</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                <Hash size={16} /> <span>Invoice Number</span>
               </label>
               <input
                 type="text"
                 name="invoice_num"
                 value={formData.invoice_num}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="INV-001"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white/50"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Bill To:
+
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                <Hash size={16} /> <span>GST Number</span>
+              </label>
+              <input
+                type="text"
+                name="gst_num"
+                value={formData.gst_num}
+                onChange={handleChange}
+                placeholder="29AAAAA0000A1Z5"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                <User size={16} /> <span>Bill To</span>
               </label>
               <input
                 type="text"
                 name="bill_to"
                 value={formData.bill_to}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Client Name / Company"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white/50"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                Ship To:
+
+            <div className="space-y-2">
+              <label className="flex items-center space-x-2 text-sm font-medium text-slate-700">
+                <MapPin size={16} /> <span>Ship To</span>
               </label>
               <input
                 type="text"
                 name="ship_to"
                 value={formData.ship_to}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600">
-                GST Number:
-              </label>
-              <input
-                type="text"
-                name="gst_num"
-                value={formData.gst_num} // Correct field
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Shipping Address / Project"
+                required
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-white/50"
               />
             </div>
           </div>
+        </section>
 
-          <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Items:</h3>
-          {formData.items.map((item, index) => (
-            <div
-              key={index}
-              className="bg-violet-50 p-4 rounded-lg shadow-sm border border-violet-200 space-y-4 relative transition hover:shadow-md"
-            >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Item Description:
-                  </label>
-                  <input
-                    type="text"
-                    value={item.item_desc}
-                    onChange={(e) => handleChange(e, index, "item_desc")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    HSN/SAC:
-                  </label>
-                  <input
-                    type="text"
-                    value={item.hsn_sac}
-                    onChange={(e) => handleChange(e, index, "hsn_sac")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Tax (%):
-                  </label>
-                  <input
-                    type="text"
-                    value={item.tax}
-                    onChange={(e) => handleChange(e, index, "tax")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Quantity:
-                  </label>
-                  <input
-                    type="number"
-                    value={item.qty}
-                    onChange={(e) => handleChange(e, index, "qty")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600">
-                    Rate Per Item:
-                  </label>
-                  <input
-                    type="number"
-                    value={item.rate_item}
-                    onChange={(e) => handleChange(e, index, "rate_item")}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end border-t pt-2">
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(index)}
-                  className="py-1.5 px-4 bg-red-100 text-red-600 rounded-md text-sm font-semibold hover:bg-red-600 hover:text-white transition-colors duration-200 flex items-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  Remove Item
-                </button>
-              </div>
-            </div>
-          ))}
-
-          <div className="flex justify-between items-center">
+        {/* Items Section */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-800">Items & Line Totals</h2>
             <button
               type="button"
               onClick={handleAddItem}
-              className="py-2 px-4 bg-green-500 text-white rounded-md shadow-md hover:bg-green-600 focus:ring focus:ring-green-300"
+              className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors flex items-center space-x-2 font-medium"
             >
-              Add Item
-            </button>
-            <button
-              type="submit"
-              className="py-2 px-4 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-600 focus:ring focus:ring-blue-300"
-            >
-              Generate Invoice
+              <Plus size={18} /> <span>Add Item</span>
             </button>
           </div>
-        </form>
-      </div>
+
+          <div className="space-y-4">
+            {formData.items.map((item, index) => (
+              <div
+                key={index}
+                className="glass-card p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4 hover:shadow-md transition-shadow duration-300"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                  <div className="md:col-span-5 space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</label>
+                    <input
+                      type="text"
+                      value={item.item_desc}
+                      onChange={(e) => handleChange(e, index, "item_desc")}
+                      placeholder="Product/Service description"
+                      className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Qty</label>
+                    <input
+                      type="number"
+                      value={item.qty}
+                      onChange={(e) => handleChange(e, index, "qty")}
+                      className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rate</label>
+                    <input
+                      type="number"
+                      value={item.rate_item}
+                      onChange={(e) => handleChange(e, index, "rate_item")}
+                      className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</label>
+                    <div className="px-4 py-2 bg-slate-50 rounded-lg text-slate-700 font-medium">
+                    ₹ {(item.qty * item.rate_item || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="md:col-span-1 flex items-end justify-center pb-1">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="p-2 text-red-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Submit Section */}
+        <div className="flex justify-end pt-8">
+          <button
+            type="submit"
+            disabled={loading}
+            className={`px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center space-x-3 text-lg ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? (
+              <span className="flex items-center space-x-2">
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>Processing...</span>
+              </span>
+            ) : (
+              <>
+                <Download size={24} />
+                <span>Generate & Download PDF</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
