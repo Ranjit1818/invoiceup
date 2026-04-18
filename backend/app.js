@@ -36,15 +36,33 @@ app.use(
 );
 app.options("*", cors()); // handle preflight for all routes
 
-// MongoDB Connection
-if (process.env.MONGODB_URI) {
-  mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => console.log("Connected to MongoDB"))
-    .catch((err) => console.error("Could not connect to MongoDB:", err));
-} else {
-  console.warn("MONGODB_URI is not defined in environment variables");
+// MongoDB — cached connection for Vercel serverless
+// Without caching, each cold-start opens a new connection and
+// the handshake causes FUNCTION_INVOCATION_TIMEOUT.
+let cachedDb = null;
+
+async function connectDB() {
+  if (cachedDb && mongoose.connection.readyState === 1) return cachedDb;
+  if (!process.env.MONGODB_URI) {
+    console.warn("MONGODB_URI not set — DB features disabled");
+    return null;
+  }
+  try {
+    cachedDb = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000, // fail fast instead of waiting 30 s
+      socketTimeoutMS: 10000,
+    });
+    console.log("Connected to MongoDB");
+    return cachedDb;
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    return null;
+  }
 }
+
+// Kick off connection eagerly on module load (warm start reuse)
+connectDB();
+
 
 // Helper: Convert number to Indian currency words
 function numberToWordsIndian(num) {
@@ -112,20 +130,12 @@ app.post("/api/generate-invoice", async (req, res) => {
       return sum + qty * rate;
     }, 0);
 
-    // Save to MongoDB
-    try {
-      const newInvoice = new Invoice({
-        invoice_num,
-        bill_to,
-        ship_to,
-        gst_num,
-        items,
-        totalAmount,
-      });
-      await newInvoice.save();
-    } catch (dbError) {
-      console.error("Error saving invoice to DB:", dbError);
-    }
+    // Save to MongoDB in background — don't block PDF generation
+    connectDB().then((db) => {
+      if (!db) return;
+      const newInvoice = new Invoice({ invoice_num, bill_to, ship_to, gst_num, items, totalAmount });
+      newInvoice.save().catch((err) => console.error("Error saving invoice to DB:", err.message));
+    });
 
     // Create a new PDF document
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -281,6 +291,7 @@ app.post("/api/generate-invoice", async (req, res) => {
 // Endpoint to get all invoices
 app.get("/api/invoices", async (req, res) => {
   try {
+    await connectDB();
     const invoices = await Invoice.find().sort({ createdAt: -1 });
     res.json(invoices);
   } catch (error) {
@@ -291,6 +302,7 @@ app.get("/api/invoices", async (req, res) => {
 // Endpoint to delete an invoice by ID
 app.delete("/api/invoices/:id", async (req, res) => {
   try {
+    await connectDB();
     const deleted = await Invoice.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Invoice not found" });
     res.json({ message: "Invoice deleted successfully" });
