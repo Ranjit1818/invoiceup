@@ -109,7 +109,7 @@ function numberToWordsIndian(num) {
 // Endpoint to generate invoice
 app.post("/api/generate-invoice", async (req, res) => {
   try {
-    const { invoice_num, bill_to, ship_to, gst_num, items } = req.body;
+    const { invoice_num, bill_to, ship_to, gst_num, items, createdAt } = req.body;
 
     // Validate request body
     if (!invoice_num || !bill_to || !ship_to || !gst_num || !Array.isArray(items)) {
@@ -165,7 +165,7 @@ app.post("/api/generate-invoice", async (req, res) => {
     // Right Header (Invoice Info)
     doc.fontSize(10).font("Helvetica-Bold")
       .text(`Invoice No: ${invoice_num}`, pageWidth - margin - 200, startY + 32, { align: "right", width: 200 })
-      .text(`Invoice Date: ${new Date().toLocaleDateString("en-GB")}`, pageWidth - margin - 200, startY + 44, { align: "right", width: 200 });
+      .text(`Invoice Date: ${(createdAt ? new Date(createdAt) : new Date()).toLocaleDateString("en-GB")}`, pageWidth - margin - 200, startY + 44, { align: "right", width: 200 });
 
     doc.font("Helvetica")
       .text("Vijayapur 586101, Karnataka, India", margin, startY + 44)
