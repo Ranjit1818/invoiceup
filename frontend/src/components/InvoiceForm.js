@@ -36,7 +36,6 @@ const InvoiceForm = () => {
   const [formData, setFormData] = useState({
     invoice_num: "",
     bill_to: "",
-    ship_to: "",
     gst_num: "",
     items: [{ item_desc: "", hsn_sac: "", tax: "", qty: "", rate_item: "" }],
   });
@@ -240,23 +239,6 @@ const InvoiceForm = () => {
                   value={formData.bill_to}
                   onChange={handleChange}
                   placeholder="Client Name / Company"
-                  required
-                  className="input-field"
-                />
-              </div>
-
-              {/* Ship To */}
-              <div>
-                <label className="label-text">
-                  <MapPin size={10} className="inline mr-1" />
-                  Ship To
-                </label>
-                <input
-                  type="text"
-                  name="ship_to"
-                  value={formData.ship_to}
-                  onChange={handleChange}
-                  placeholder="Shipping Address / Project Site"
                   required
                   className="input-field"
                 />

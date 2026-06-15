@@ -12,7 +12,6 @@ const invoiceSchema = new mongoose.Schema(
   {
     invoice_num: { type: String, required: true },
     bill_to: { type: String, required: true },
-    ship_to: { type: String, required: true },
     gst_num: { type: String },
     items: [itemSchema],
     totalAmount: { type: Number, required: true },

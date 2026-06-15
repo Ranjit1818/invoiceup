@@ -109,10 +109,10 @@ function numberToWordsIndian(num) {
 // Endpoint to generate invoice
 app.post("/api/generate-invoice", async (req, res) => {
   try {
-    const { invoice_num, bill_to, ship_to, gst_num, items, createdAt } = req.body;
+    const { invoice_num, bill_to, gst_num, items, createdAt } = req.body;
 
     // Validate request body
-    if (!invoice_num || !bill_to || !ship_to || !gst_num || !Array.isArray(items)) {
+    if (!invoice_num || !bill_to || !gst_num || !Array.isArray(items)) {
       return res.status(400).json({ error: "Missing or invalid required fields" });
     }
 
@@ -130,10 +130,9 @@ app.post("/api/generate-invoice", async (req, res) => {
       return sum + qty * rate;
     }, 0);
 
-    // Save to MongoDB in background — don't block PDF generation
     connectDB().then((db) => {
       if (!db) return;
-      const newInvoice = new Invoice({ invoice_num, bill_to, ship_to, gst_num, items, totalAmount });
+      const newInvoice = new Invoice({ invoice_num, bill_to, gst_num, items, totalAmount });
       newInvoice.save().catch((err) => console.error("Error saving invoice to DB:", err.message));
     });
 
@@ -177,14 +176,12 @@ app.post("/api/generate-invoice", async (req, res) => {
     // Horizontal Line above Bill To
     doc.moveTo(margin, startY + 110).lineTo(pageWidth - margin, startY + 110).lineWidth(1).stroke();
 
-    // Bill To / Ship To
+    // Bill To
     const billShipY = startY + 125;
     const boxWidth = pageWidth - 2 * margin;
     const boxHeight = 85;
-    const columnWidth = boxWidth / 2;
 
     doc.rect(margin, billShipY, boxWidth, boxHeight).stroke();
-    doc.moveTo(margin + columnWidth, billShipY).lineTo(margin + columnWidth, billShipY + boxHeight).stroke();
 
     doc.fontSize(12).font("Helvetica-Bold").text("Bill To:", margin + 10, billShipY + 10);
     doc.fontSize(10).font("Helvetica")
@@ -192,13 +189,6 @@ app.post("/api/generate-invoice", async (req, res) => {
       .text("Karnataka,", margin + 20, billShipY + 40)
       .text("India", margin + 20, billShipY + 52)
       .text(gst_num ? `${gst_num}` : "-", margin + 20, billShipY + 64);
-
-    doc.fontSize(12).font("Helvetica-Bold").text("Ship To:", margin + columnWidth + 10, billShipY + 10);
-    doc.fontSize(10).font("Helvetica")
-      .text(ship_to || "", margin + columnWidth + 20, billShipY + 28)
-      .text("Karnataka,", margin + columnWidth + 20, billShipY + 40)
-      .text("India", margin + columnWidth + 20, billShipY + 52)
-      .text(gst_num ? ` ${gst_num}` : "-", margin + columnWidth + 20, billShipY + 64);
 
     // Items Table
     let tableStartY = billShipY + boxHeight + 40;
@@ -291,7 +281,10 @@ app.post("/api/generate-invoice", async (req, res) => {
 // Endpoint to get all invoices
 app.get("/api/invoices", async (req, res) => {
   try {
-    await connectDB();
+    const db = await connectDB();
+    if (!db) {
+      return res.status(500).json({ error: "Database connection failed. Please check MongoDB configuration." });
+    }
     const invoices = await Invoice.find().sort({ createdAt: -1 });
     res.json(invoices);
   } catch (error) {
@@ -302,7 +295,10 @@ app.get("/api/invoices", async (req, res) => {
 // Endpoint to delete an invoice by ID
 app.delete("/api/invoices/:id", async (req, res) => {
   try {
-    await connectDB();
+    const db = await connectDB();
+    if (!db) {
+      return res.status(500).json({ error: "Database connection failed. Please check MongoDB configuration." });
+    }
     const deleted = await Invoice.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Invoice not found" });
     res.json({ message: "Invoice deleted successfully" });

@@ -342,12 +342,6 @@ const InvoiceHistory = () => {
                           <User size={12} /> Client <SortIcon col="bill_to" />
                         </span>
                       </th>
-                      {/* Ship To */}
-                      <th>
-                        <span className="flex items-center gap-1">
-                          Ship To
-                        </span>
-                      </th>
                       {/* GST */}
                       <th>
                         <span className="flex items-center gap-1">
@@ -402,13 +396,6 @@ const InvoiceHistory = () => {
                           <td>
                             <span className="font-semibold text-slate-700">
                               {invoice.bill_to || "—"}
-                            </span>
-                          </td>
-
-                          {/* Ship To */}
-                          <td>
-                            <span className="text-slate-500 text-xs max-w-[140px] truncate block">
-                              {invoice.ship_to || "—"}
                             </span>
                           </td>
 
