@@ -7,6 +7,7 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 const Invoice = require("./models/Invoice");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 const app = express();
 
@@ -62,6 +63,9 @@ async function connectDB() {
 
 // Kick off connection eagerly on module load (warm start reuse)
 connectDB();
+
+// Mount analytics routes
+app.use("/api/analytics", analyticsRoutes);
 
 
 // Helper: Convert number to Indian currency words

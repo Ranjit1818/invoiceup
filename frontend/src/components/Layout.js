@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { History, FilePlus, Menu, X, Zap } from "lucide-react";
+import { History, FilePlus, Menu, X, Zap, BarChart3 } from "lucide-react";
 
 const navItems = [
   {
@@ -14,6 +14,12 @@ const navItems = [
     path: "/history",
     icon: History,
     desc: "View past invoices",
+  },
+  {
+    name: "Analytics",
+    path: "/analytics",
+    icon: BarChart3,
+    desc: "Business intelligence",
   },
 ];
 
