@@ -182,7 +182,7 @@ const InvoiceHistory = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-extrabold text-gradient tracking-tight">
-                  Invoice History
+                  Invoice List
                 </h1>
                 <p className="text-slate-400 text-sm">
                   {invoices.length} invoice{invoices.length !== 1 ? "s" : ""} on record
