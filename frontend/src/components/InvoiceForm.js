@@ -10,7 +10,6 @@ import {
   Download,
   Hash,
   User,
-  MapPin,
   CreditCard,
   Package,
   ChevronRight,
