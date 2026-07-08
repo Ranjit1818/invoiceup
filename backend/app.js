@@ -113,7 +113,7 @@ function numberToWordsIndian(num) {
 // Endpoint to generate invoice
 app.post("/api/generate-invoice", async (req, res) => {
   try {
-    const { invoice_num, bill_to, gst_num, items, createdAt } = req.body;
+    const { _id, invoice_num, bill_to, gst_num, items, createdAt } = req.body;
 
     // Validate request body
     if (!invoice_num || !bill_to || !gst_num || !Array.isArray(items)) {
@@ -134,11 +134,13 @@ app.post("/api/generate-invoice", async (req, res) => {
       return sum + qty * rate;
     }, 0);
 
-    connectDB().then((db) => {
-      if (!db) return;
-      const newInvoice = new Invoice({ invoice_num, bill_to, gst_num, items, totalAmount });
-      newInvoice.save().catch((err) => console.error("Error saving invoice to DB:", err.message));
-    });
+    if (!_id) {
+      connectDB().then((db) => {
+        if (!db) return;
+        const newInvoice = new Invoice({ invoice_num, bill_to, gst_num, items, totalAmount });
+        newInvoice.save().catch((err) => console.error("Error saving invoice to DB:", err.message));
+      });
+    }
 
     // Create a new PDF document
     const doc = new PDFDocument({ margin: 50, size: 'A4' });

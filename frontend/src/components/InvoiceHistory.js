@@ -316,12 +316,9 @@ const InvoiceHistory = () => {
                   <thead>
                     <tr>
                       {/* Invoice # */}
-                      <th
-                        className="cursor-pointer select-none"
-                        onClick={() => handleSort("invoice_num")}
-                      >
+                      <th>
                         <span className="flex items-center gap-1">
-                          <Hash size={12} /> Invoice # <SortIcon col="invoice_num" />
+                          <Hash size={12} /> Invoice #
                         </span>
                       </th>
                       {/* Date */}
@@ -334,12 +331,9 @@ const InvoiceHistory = () => {
                         </span>
                       </th>
                       {/* Client */}
-                      <th
-                        className="cursor-pointer select-none"
-                        onClick={() => handleSort("bill_to")}
-                      >
+                      <th>
                         <span className="flex items-center gap-1">
-                          <User size={12} /> Client <SortIcon col="bill_to" />
+                          <User size={12} /> Client
                         </span>
                       </th>
                       {/* GST */}
@@ -351,12 +345,9 @@ const InvoiceHistory = () => {
                       {/* Items */}
                       <th>Items</th>
                       {/* Amount */}
-                      <th
-                        className="cursor-pointer select-none"
-                        onClick={() => handleSort("totalAmount")}
-                      >
+                      <th>
                         <span className="flex items-center gap-1">
-                          <IndianRupee size={12} /> Amount <SortIcon col="totalAmount" />
+                          <IndianRupee size={12} /> Amount
                         </span>
                       </th>
                       {/* Action */}
