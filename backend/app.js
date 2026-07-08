@@ -19,6 +19,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://invoiceup.vercel.app",
   "https://invoiceupdate.vercel.app",
+  "https://invoiceup-fcqg-topaz.vercel.app"
 ];
 app.use(
   cors({
