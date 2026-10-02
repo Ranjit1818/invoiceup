@@ -139,11 +139,15 @@ const InvoiceHistory = () => {
       .sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
         if (sortKey === "totalAmount") { va = Number(va); vb = Number(vb); }
-        else if (sortKey === "createdAt") { va = new Date(va); vb = new Date(vb); }
+        else if (sortKey === "createdAt") { va = new Date(va).setHours(0,0,0,0); vb = new Date(vb).setHours(0,0,0,0); }
         else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
         if (va < vb) return sortDir === "asc" ? -1 : 1;
         if (va > vb) return sortDir === "asc" ? 1 : -1;
-        return 0;
+        
+        let invA = String(a.invoice_num || "");
+        let invB = String(b.invoice_num || "");
+        let cmp = invA.localeCompare(invB, undefined, { numeric: true, sensitivity: 'base' });
+        return sortDir === "asc" ? cmp : -cmp;
       });
   }, [invoices, search, sortKey, sortDir]);
 
