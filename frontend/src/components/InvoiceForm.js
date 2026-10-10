@@ -277,7 +277,7 @@ const InvoiceForm = () => {
 
             {/* Table header – hidden on mobile */}
             <div className="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-2">
-              {["Description", "HSN / SAC", "Tax %", "Qty", "Rate (₹)", "Amount", ""].map(
+              {["Description", "HSN / SAC", "GST %", "Qty", "Rate (₹)", "Amount", ""].map(
                 (h, i) => (
                   <div
                     key={i}
@@ -396,7 +396,7 @@ const InvoiceForm = () => {
                     <div className="md:col-span-1">
                       <label className="label-text md:hidden">Amount</label>
                       <div className="input-field bg-indigo-50/60 border-indigo-100 text-indigo-700 font-semibold text-sm">
-                        ₹{(fmt(item.qty) * fmt(item.rate_item)).toFixed(2)}
+                        ₹{(fmt(item.qty) * fmt(item.rate_item) * (1 + fmt(item.tax) / 100)).toFixed(2)}
                       </div>
                     </div>
 

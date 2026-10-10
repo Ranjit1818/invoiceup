@@ -130,9 +130,10 @@ app.post("/api/generate-invoice", async (req, res) => {
 
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => {
-      const qty = Number(item.qty);
-      const rate = Number(item.rate_item);
-      return sum + qty * rate;
+      const qty = Number(item.qty) || 0;
+      const rate = Number(item.rate_item) || 0;
+      const tax = Number(item.tax) || 0;
+      return sum + (qty * rate) * (1 + (tax / 100));
     }, 0);
 
     if (!_id) {
@@ -199,7 +200,7 @@ app.post("/api/generate-invoice", async (req, res) => {
 
     // Items Table
     let tableStartY = billShipY + boxHeight + 40;
-    const colWidths = [40, 200, 90, 75, 90]; // Sum = 495
+    const colWidths = [30, 180, 65, 70, 60, 90]; // Sum = 495
     const rowHeight = 22;
 
     const drawRow = (cols, y, isBold = false) => {
@@ -225,11 +226,12 @@ app.post("/api/generate-invoice", async (req, res) => {
       return y + maxHeight;
     };
 
-    tableStartY = drawRow(["SL", "ITEM DESCRIPTION", "RATE/ITEM", "QUANTITY", "AMOUNT"], tableStartY, true);
+    tableStartY = drawRow(["SL", "ITEM DESCRIPTION", "RATE", "QUANTITY", "GST %", "AMOUNT"], tableStartY, true);
     items.forEach((item, index) => {
       const rate = Number(item.rate_item).toFixed(2);
-      const amount = (item.qty * item.rate_item).toFixed(2);
-      tableStartY = drawRow([`${index + 1}`, item.item_desc, rate, item.qty.toString(), amount], tableStartY);
+      const tax = item.tax ? item.tax.toString() : "0";
+      const amount = (Number(item.qty) * Number(item.rate_item) * (1 + Number(item.tax || 0) / 100)).toFixed(2);
+      tableStartY = drawRow([`${index + 1}`, item.item_desc, rate, item.qty.toString(), tax, amount], tableStartY);
     });
 
     // Totals Table
