@@ -21,6 +21,82 @@ import {
 /* ─── tiny helpers ─────────────────────────────────────────────────────────── */
 const fmt = (v) => (isNaN(Number(v)) ? 0 : Number(v));
 
+const numberToWordsIndian = (amount) => {
+  const num = Number(amount);
+  if (isNaN(num) || num === 0) return "Zero Rupees Only";
+
+  const belowTwenty = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen"
+  ];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+  const convertTwoDigits = (n) => {
+    if (n < 20) return belowTwenty[n];
+    const t = Math.floor(n / 10);
+    const u = n % 10;
+    return tens[t] + (u > 0 ? " " + belowTwenty[u] : "");
+  };
+
+  const convertThreeDigits = (n) => {
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    let res = "";
+    if (h > 0) res += belowTwenty[h] + " Hundred";
+    if (rem > 0) res += (res ? " " : "") + convertTwoDigits(rem);
+    return res;
+  };
+
+  const convertInteger = (n) => {
+    if (n === 0) return "";
+    let words = "";
+
+    const crore = Math.floor(n / 10000000);
+    n %= 10000000;
+
+    const lakh = Math.floor(n / 100000);
+    n %= 100000;
+
+    const thousand = Math.floor(n / 1000);
+    n %= 1000;
+
+    const remainder = n;
+
+    if (crore > 0) {
+      words += convertInteger(crore) + " Crore ";
+    }
+    if (lakh > 0) {
+      words += convertTwoDigits(lakh) + " Lakh ";
+    }
+    if (thousand > 0) {
+      words += convertTwoDigits(thousand) + " Thousand ";
+    }
+    if (remainder > 0) {
+      words += convertThreeDigits(remainder) + " ";
+    }
+
+    return words.trim();
+  };
+
+  // Round to 2 decimal places to eliminate floating point issues (e.g. 99999.9999999 -> 100000.00)
+  const [rupeesStr, paiseStr] = Math.abs(num).toFixed(2).split(".");
+  const rupees = parseInt(rupeesStr, 10);
+  const paise = parseInt(paiseStr, 10);
+
+  let parts = [];
+  if (rupees > 0) {
+    parts.push(convertInteger(rupees) + " " + (rupees === 1 ? "Rupee" : "Rupees"));
+  }
+  if (paise > 0) {
+    parts.push(convertInteger(paise) + " " + (paise === 1 ? "Paisa" : "Paise"));
+  }
+
+  if (parts.length === 0) return "Zero Rupees Only";
+
+  return (num < 0 ? "Minus " : "") + parts.join(" and ") + " Only";
+};
+
 /* ─── component ────────────────────────────────────────────────────────────── */
 const InvoiceForm = () => {
   const navigate = useNavigate();
@@ -519,8 +595,8 @@ const InvoiceForm = () => {
                 {/* 2. In Words Table (Different table) */}
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">In Words</span>
-                  <p className="text-xs font-semibold text-slate-700 italic">
-                    ₹{grandTotal.toFixed(2)} (Rendered dynamically in Indian numbering on PDF)
+                  <p className="text-xs font-semibold text-slate-800 font-medium">
+                    {grandTotal > 0 ? numberToWordsIndian(grandTotal) : "Zero Rupees Only"}
                   </p>
                 </div>
               </div>

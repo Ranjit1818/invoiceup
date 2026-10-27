@@ -70,45 +70,80 @@ app.use("/api/analytics", analyticsRoutes);
 
 
 // Helper: Convert number to Indian currency words
-function numberToWordsIndian(num) {
-  const units = ["", "Thousand", "Lakh", "Crore"];
+function numberToWordsIndian(amount) {
+  const num = Number(amount);
+  if (isNaN(num) || num === 0) return "Zero Rupees Only";
+
   const belowTwenty = [
     "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
     "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-    "Seventeen", "Eighteen", "Nineteen",
+    "Seventeen", "Eighteen", "Nineteen"
   ];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
 
-  const convertChunk = (n) => {
+  const convertTwoDigits = (n) => {
     if (n < 20) return belowTwenty[n];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? " " + belowTwenty[n % 10] : "");
-    if (n < 1000) return belowTwenty[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " " + convertChunk(n % 100) : "");
-    return "";
+    const t = Math.floor(n / 10);
+    const u = n % 10;
+    return tens[t] + (u > 0 ? " " + belowTwenty[u] : "");
   };
 
-  if (num === 0) return "Zero";
+  const convertThreeDigits = (n) => {
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    let res = "";
+    if (h > 0) res += belowTwenty[h] + " Hundred";
+    if (rem > 0) res += (res ? " " : "") + convertTwoDigits(rem);
+    return res;
+  };
 
-  let words = "";
-  let n = Math.floor(num);
-  const chunks = [];
-  
-  // Handle first chunk (up to 1000)
-  chunks.push(n % 1000);
-  n = Math.floor(n / 1000);
-  
-  // Handle other chunks (Lakh, Crore) - 2 digits each in Indian system
-  while (n > 0) {
-    chunks.push(n % 100);
-    n = Math.floor(n / 100);
-  }
+  const convertInteger = (n) => {
+    if (n === 0) return "";
+    let words = "";
 
-  for (let i = chunks.length - 1; i >= 0; i--) {
-    if (chunks[i] > 0) {
-      words += convertChunk(chunks[i]) + (i > 0 ? " " + units[i] + " " : "");
+    const crore = Math.floor(n / 10000000);
+    n %= 10000000;
+
+    const lakh = Math.floor(n / 100000);
+    n %= 100000;
+
+    const thousand = Math.floor(n / 1000);
+    n %= 1000;
+
+    const remainder = n;
+
+    if (crore > 0) {
+      words += convertInteger(crore) + " Crore ";
     }
+    if (lakh > 0) {
+      words += convertTwoDigits(lakh) + " Lakh ";
+    }
+    if (thousand > 0) {
+      words += convertTwoDigits(thousand) + " Thousand ";
+    }
+    if (remainder > 0) {
+      words += convertThreeDigits(remainder) + " ";
+    }
+
+    return words.trim();
+  };
+
+  // Round to 2 decimal places to eliminate floating point issues (e.g. 99999.9999999 -> 100000.00)
+  const [rupeesStr, paiseStr] = Math.abs(num).toFixed(2).split(".");
+  const rupees = parseInt(rupeesStr, 10);
+  const paise = parseInt(paiseStr, 10);
+
+  let parts = [];
+  if (rupees > 0) {
+    parts.push(convertInteger(rupees) + " " + (rupees === 1 ? "Rupee" : "Rupees"));
+  }
+  if (paise > 0) {
+    parts.push(convertInteger(paise) + " " + (paise === 1 ? "Paisa" : "Paise"));
   }
 
-  return words.trim();
+  if (parts.length === 0) return "Zero Rupees Only";
+
+  return (num < 0 ? "Minus " : "") + parts.join(" and ") + " Only";
 }
 
 // Endpoint to generate invoice
@@ -144,11 +179,11 @@ app.post("/api/generate-invoice", async (req, res) => {
       };
     });
 
-    // Calculate total amount
-    const totalAmount = processedItems.reduce((sum, item) => {
-      const totalTaxRate = item.cgst + item.sgst;
-      return sum + (item.qty * item.rate_item) * (1 + (totalTaxRate / 100));
-    }, 0);
+    // Calculate total amount matching the invoice breakdown
+    const taxableAmount = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item)), 0);
+    const totalCGST = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item) * (Number(item.cgst || 0) / 100)), 0);
+    const totalSGST = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item) * (Number(item.sgst || 0) / 100)), 0);
+    const totalAmount = Number((taxableAmount + totalCGST + totalSGST).toFixed(2));
 
     if (!_id) {
       connectDB().then((db) => {
@@ -257,10 +292,6 @@ app.post("/api/generate-invoice", async (req, res) => {
     const taxValueWidth = colWidths[5]; // 90 (Exact width of AMOUNT column)
     const totalsRowHeight = 18;
 
-    const taxableAmount = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item)), 0);
-    const totalCGST = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item) * (Number(item.cgst || 0) / 100)), 0);
-    const totalSGST = processedItems.reduce((sum, item) => sum + (Number(item.qty) * Number(item.rate_item) * (Number(item.sgst || 0) / 100)), 0);
-
     // Group taxes by rate to display percentages
     const rateMap = {};
     processedItems.forEach((item) => {
@@ -329,7 +360,7 @@ app.post("/api/generate-invoice", async (req, res) => {
 
     // 3. In Words Table (Different, separate table)
     tableStartY += 8;
-    const inWordsText = `${numberToWordsIndian(totalAmount)} Rupees Only`;
+    const inWordsText = numberToWordsIndian(totalAmount);
     const inWordsHeight = Math.max(totalsRowHeight, doc.heightOfString(inWordsText, { width: summaryValueWidth - 15 }) + 8);
 
     doc.rect(margin, tableStartY, summaryLabelWidth, inWordsHeight).stroke();
@@ -346,7 +377,7 @@ app.post("/api/generate-invoice", async (req, res) => {
       .text("3.This invoice is subjected to the terms and conditions mentioned in the agreement or work order.", margin + 10, termsY + 39);
 
     // Signature Block (Follows Terms)
-    const signY = termsY + 300;
+    const signY = termsY + 200;
     const signPath = path.join(__dirname, "assets", "vidwat_sign.png");
     const signBoxWidth = 150;
     const signX = pageWidth - margin - signBoxWidth;
