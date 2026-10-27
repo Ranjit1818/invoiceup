@@ -48,16 +48,31 @@ const InvoiceForm = () => {
       ),
     [formData.items]
   );
-  const totalTax = useMemo(
+  const totalCGST = useMemo(
     () =>
       formData.items.reduce(
         (s, i) =>
-          s + fmt(i.qty) * fmt(i.rate_item) * (fmt(i.tax) / 100),
+          s + fmt(i.qty) * fmt(i.rate_item) * ((fmt(i.tax) / 2) / 100),
         0
       ),
     [formData.items]
   );
-  const grandTotal = subtotal + totalTax;
+  const totalSGST = useMemo(
+    () =>
+      formData.items.reduce(
+        (s, i) =>
+          s + fmt(i.qty) * fmt(i.rate_item) * ((fmt(i.tax) / 2) / 100),
+        0
+      ),
+    [formData.items]
+  );
+  const grandTotal = subtotal + totalCGST + totalSGST;
+
+  const distinctTaxRates = useMemo(() => {
+    return [...new Set(formData.items.map((i) => fmt(i.tax) / 2))];
+  }, [formData.items]);
+
+  const taxRateDisplay = distinctTaxRates.length > 0 ? distinctTaxRates.map(r => `${r}%`).join(", ") : "0%";
 
   /* ── handlers ── */
   const handleChange = (e, index = null, field = null) => {
@@ -67,6 +82,33 @@ const InvoiceForm = () => {
       setFormData({ ...formData, items });
     } else {
       setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
+  };
+
+  const handleNumericChange = (e, index, field) => {
+    let raw = e.target.value;
+    // Normalize commas to dots if single comma, or strip commas if formatting like 1,000.50
+    if (raw.includes(",") && raw.includes(".")) {
+      raw = raw.replace(/,/g, "");
+    } else if (raw.includes(",")) {
+      const commas = (raw.match(/,/g) || []).length;
+      raw = commas === 1 ? raw.replace(",", ".") : raw.replace(/,/g, "");
+    }
+
+    // Only allow empty string or valid decimal numbers (digits with at most one decimal point)
+    if (raw === "" || /^\d*\.?\d*$/.test(raw)) {
+      const items = [...formData.items];
+      items[index] = { ...items[index], [field]: raw };
+      setFormData({ ...formData, items });
+    }
+  };
+
+  const handleNumericBlur = (index, field) => {
+    const items = [...formData.items];
+    const val = items[index][field];
+    if (typeof val === "string" && val.endsWith(".")) {
+      items[index] = { ...items[index], [field]: val.slice(0, -1) };
+      setFormData({ ...formData, items });
     }
   };
 
@@ -92,11 +134,48 @@ const InvoiceForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.invoice_num || !formData.invoice_num.trim()) {
+      showToast("error", "Please enter Invoice Number");
+      return;
+    }
+    if (!formData.bill_to || !formData.bill_to.trim()) {
+      showToast("error", "Please enter Bill To client name");
+      return;
+    }
+    for (let i = 0; i < formData.items.length; i++) {
+      const it = formData.items[i];
+      if (!it.item_desc || !it.item_desc.trim()) {
+        showToast("error", `Please enter description for Item ${i + 1}`);
+        return;
+      }
+      if (it.qty === "" || isNaN(Number(it.qty)) || Number(it.qty) <= 0) {
+        showToast("error", `Please enter a valid quantity for Item ${i + 1}`);
+        return;
+      }
+      if (it.rate_item === "" || isNaN(Number(it.rate_item)) || Number(it.rate_item) < 0) {
+        showToast("error", `Please enter a valid rate for Item ${i + 1}`);
+        return;
+      }
+    }
     setIsGenerating(true);
     try {
+      const payload = {
+        ...formData,
+        items: formData.items.map((it) => {
+          const t = fmt(it.tax);
+          return {
+            ...it,
+            tax: t,
+            cgst: t / 2,
+            sgst: t / 2,
+            qty: fmt(it.qty),
+            rate_item: fmt(it.rate_item),
+          };
+        }),
+      };
       const response = await axios.post(
         `${API_URL}/api/generate-invoice`,
-        formData,
+        payload,
         { responseType: "blob" }
       );
       const blob = new Blob([response.data], { type: "application/pdf" });
@@ -107,7 +186,17 @@ const InvoiceForm = () => {
       showToast("success", "Invoice generated & downloaded!");
     } catch (err) {
       console.error(err);
-      showToast("error", "Something went wrong. Please try again.");
+      let errorMsg = "Something went wrong. Please try again.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json.error) errorMsg = json.error;
+        } catch (_) {}
+      } else if (err.response?.data?.error) {
+        errorMsg = err.response.data.error;
+      }
+      showToast("error", errorMsg);
     } finally {
       setIsGenerating(false);
     }
@@ -277,30 +366,13 @@ const InvoiceForm = () => {
 
             {/* Table header – hidden on mobile */}
             <div className="hidden md:grid md:grid-cols-12 gap-3 mb-2 px-2">
-              {["Description", "HSN / SAC", "GST %", "Qty", "Rate (₹)", "Amount", ""].map(
-                (h, i) => (
-                  <div
-                    key={i}
-                    className={`label-text ${
-                      i === 0
-                        ? "col-span-4"
-                        : i === 1
-                        ? "col-span-2"
-                        : i === 2
-                        ? "col-span-1"
-                        : i === 3
-                        ? "col-span-1"
-                        : i === 4
-                        ? "col-span-2"
-                        : i === 5
-                        ? "col-span-1"
-                        : "col-span-1"
-                    }`}
-                  >
-                    {h}
-                  </div>
-                )
-              )}
+              <div className="col-span-3 label-text">Description</div>
+              <div className="col-span-2 label-text">HSN / SAC</div>
+              <div className="col-span-1 label-text">Qty</div>
+              <div className="col-span-2 label-text">Rate (₹)</div>
+              <div className="col-span-2 label-text">GST %</div>
+              <div className="col-span-1 label-text">Amount</div>
+              <div className="col-span-1 label-text"></div>
             </div>
 
             <AnimatePresence mode="popLayout">
@@ -330,7 +402,7 @@ const InvoiceForm = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
                     {/* Description */}
-                    <div className="md:col-span-4">
+                    <div className="md:col-span-3">
                       <label className="label-text md:hidden">Description</label>
                       <input
                         type="text"
@@ -353,49 +425,61 @@ const InvoiceForm = () => {
                       />
                     </div>
 
-                    {/* Tax */}
-                    <div className="md:col-span-1">
-                      <label className="label-text md:hidden">Tax %</label>
-                      <input
-                        type="number"
-                        value={item.tax}
-                        onChange={(e) => handleChange(e, index, "tax")}
-                        placeholder="18"
-                        min="0"
-                        className="input-field"
-                      />
-                    </div>
-
-                    {/* Qty */}
+                    {/* Qty (Comes before Rate) */}
                     <div className="md:col-span-1">
                       <label className="label-text md:hidden">Qty</label>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={item.qty}
-                        onChange={(e) => handleChange(e, index, "qty")}
+                        onChange={(e) => handleNumericChange(e, index, "qty")}
+                        onBlur={() => handleNumericBlur(index, "qty")}
                         placeholder="1"
-                        min="0"
+                        className="input-field text-center px-1"
+                      />
+                    </div>
+
+                    {/* Rate (Comes after Qty) */}
+                    <div className="md:col-span-2">
+                      <label className="label-text md:hidden">Rate (₹)</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={item.rate_item}
+                        onChange={(e) => handleNumericChange(e, index, "rate_item")}
+                        onBlur={() => handleNumericBlur(index, "rate_item")}
+                        placeholder="0.00"
                         className="input-field"
                       />
                     </div>
 
-                    {/* Rate */}
+                    {/* GST % and individual row CGST/SGST calculation */}
                     <div className="md:col-span-2">
-                      <label className="label-text md:hidden">Rate (₹)</label>
+                      <label className="label-text md:hidden">GST %</label>
                       <input
-                        type="number"
-                        value={item.rate_item}
-                        onChange={(e) => handleChange(e, index, "rate_item")}
-                        placeholder="0.00"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
+                        value={item.tax}
+                        onChange={(e) => handleNumericChange(e, index, "tax")}
+                        onBlur={() => handleNumericBlur(index, "tax")}
+                        placeholder="18"
                         className="input-field"
                       />
+                      {fmt(item.tax) > 0 && (
+                        <div className="text-[11px] font-semibold text-indigo-600 mt-1 flex items-center justify-between px-1">
+                          <span>CGST: {(fmt(item.tax) / 2)}%</span>
+                          <span>SGST: {(fmt(item.tax) / 2)}%</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Amount (calculated) */}
                     <div className="md:col-span-1">
                       <label className="label-text md:hidden">Amount</label>
-                      <div className="input-field bg-indigo-50/60 border-indigo-100 text-indigo-700 font-semibold text-sm">
+                      <div
+                        className="input-field bg-indigo-50/60 border-indigo-100 text-indigo-700 font-semibold text-xs truncate flex items-center justify-end px-2"
+                        title={`₹${(fmt(item.qty) * fmt(item.rate_item) * (1 + fmt(item.tax) / 100)).toFixed(2)}`}
+                      >
                         ₹{(fmt(item.qty) * fmt(item.rate_item) * (1 + fmt(item.tax) / 100)).toFixed(2)}
                       </div>
                     </div>
@@ -417,22 +501,49 @@ const InvoiceForm = () => {
               ))}
             </AnimatePresence>
 
-            {/* ── Totals Summary ── */}
-            <div className="mt-6 flex justify-end">
-              <div className="bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-100 rounded-2xl px-6 py-5 min-w-[260px] space-y-2">
-                <div className="flex justify-between text-sm text-slate-500">
-                  <span>Subtotal</span>
-                  <span className="font-medium text-slate-700">₹{subtotal.toFixed(2)}</span>
+            {/* ── Summary Section ── */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Separate Tables: Amount Payable & In Words (At LEFT) */}
+              <div className="space-y-3.5">
+                {/* 1. Amount Payable Table */}
+                <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl p-5 shadow-lg shadow-indigo-300/30 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-indigo-100 uppercase tracking-wider block">Amount Payable</span>
+                    <span className="text-2xl font-extrabold tracking-tight">₹{grandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-2.5 py-1 bg-white/20 rounded-lg text-xs font-medium">Grand Total</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm text-slate-500">
-                  <span>Tax</span>
-                  <span className="font-medium text-slate-700">₹{totalTax.toFixed(2)}</span>
+
+                {/* 2. In Words Table (Different table) */}
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">In Words</span>
+                  <p className="text-xs font-semibold text-slate-700 italic">
+                    ₹{grandTotal.toFixed(2)} (Rendered dynamically in Indian numbering on PDF)
+                  </p>
                 </div>
-                <div className="border-t border-slate-200 pt-2 flex justify-between">
-                  <span className="font-bold text-slate-800">Grand Total</span>
-                  <span className="font-extrabold text-indigo-600 text-lg">
-                    ₹{grandTotal.toFixed(2)}
-                  </span>
+              </div>
+
+              {/* Tax Breakdown Table (At RIGHT side) */}
+              <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tax Breakdown</span>
+                  <span className="badge-blue text-[11px]">Individual Row Split</span>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Taxable Amount</span>
+                    <span className="font-semibold text-slate-800">₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>CGST ({taxRateDisplay})</span>
+                    <span className="font-semibold text-indigo-700">₹{totalCGST.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>SGST ({taxRateDisplay})</span>
+                    <span className="font-semibold text-indigo-700">₹{totalSGST.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -28,16 +28,18 @@ app.post("/generate-invoice", async (req, res) => {
       "{% for item in items %}",
       items
         .map(
-          (item, index) =>
-            `<tr>
+          (item, index) => {
+            const gst = Number(item.tax) || ((Number(item.cgst) || 0) + (Number(item.sgst) || 0));
+            return `<tr>
               <td>${index + 1}</td>
               <td>${item.item_desc}</td>
-              <td>${item.hsn_sac}</td>
-              <td>${item.tax}</td>
+              <td>${item.hsn_sac || "-"}</td>
               <td>${item.qty}</td>
-              <td>${item.rate_item}</td>
-              <td>${item.amount}</td>
-            </tr>`
+              <td>${Number(item.rate_item).toFixed(2)}</td>
+              <td>${gst}%</td>
+              <td>${(Number(item.qty) * Number(item.rate_item) * (1 + gst / 100)).toFixed(2)}</td>
+            </tr>`;
+          }
         )
         .join("")
     );

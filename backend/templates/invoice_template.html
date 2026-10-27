@@ -67,28 +67,34 @@
                     <th>#</th>
                     <th>Item & Description</th>
                     <th>HSN/SAC</th>
-                    <th>Tax%</th>
                     <th>Qty.</th>
                     <th>Rate/Item</th>
+                    <th>GST%</th>
                     <th>Amount</th>
                 </tr>
             </thead>
             <tbody>
-                {{#each items}}
-                <tr>
-                    <td>{{@index}}</td>
-                    <td>{{item_desc}}</td>
-                    <td>{{hsn_sac}}</td>
-                    <td>{{tax}}</td>
-                    <td>{{qty}}</td>
-                    <td>{{rate_item}}</td>
-                    <td>{{amount}}</td>
-                </tr>
                 {{items}}
             </tbody>
         </table>
+        <!-- Half table at right for Taxable Amount, CGST, SGST -->
+        <table class="tax-breakdown-table" style="width: 50%; float: right; border-collapse: collapse; margin-bottom: 15px;">
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Taxable Amount:</th>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">{{taxable_amount}}</td>
+            </tr>
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">CGST ({{cgst_rate}}%):</th>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">{{cgst_amount}}</td>
+            </tr>
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">SGST ({{sgst_rate}}%):</th>
+                <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">{{sgst_amount}}</td>
+            </tr>
+        </table>
+        <div style="clear: both;"></div>
         <div class="footer">
-            <p>Amount Chargeable (in Words): Rupees Two Thousand Only</p>
+            <p>Amount Chargeable (in Words): {{amount_in_words}}</p>
             <p>E & O E</p>
             <p>Authorized Signatory</p>
         </div>

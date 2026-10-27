@@ -147,8 +147,11 @@ router.get("/", async (req, res) => {
     const taxMap = {};
     invoices.forEach((inv) => {
       inv.items.forEach((it) => {
-        const taxLabel = `${it.tax}%`;
-        const taxAmt = it.qty * it.rate_item * (it.tax / 100);
+        const taxVal = (it.cgst !== undefined && it.sgst !== undefined && (it.cgst > 0 || it.sgst > 0))
+          ? (Number(it.cgst) || 0) + (Number(it.sgst) || 0)
+          : (Number(it.tax) || 0);
+        const taxLabel = `${taxVal}%`;
+        const taxAmt = it.qty * it.rate_item * (taxVal / 100);
         if (!taxMap[taxLabel]) taxMap[taxLabel] = { taxable: 0, tax: 0 };
         taxMap[taxLabel].taxable += it.qty * it.rate_item;
         taxMap[taxLabel].tax += taxAmt;
